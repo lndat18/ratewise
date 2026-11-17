@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ratewise - LTL Shipment Form (prototype)</title>
+<style>
+  /* ---- Design tokens: change colors/spacing here and the whole page follows ---- */
+  :root {
+    --bg:#f4f6fa; --card:#fff; --text:#1c2333; --muted:#5d6b82; --line:#d5dbe6;
+    --brand:#1f5eff; --brand-dark:#1744c2; --err:#c62828; --err-bg:#fdecec;
+    --ok:#1b7f4b; --warn-bg:#fff6dc; --radius:10px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--brand); color:#fff; padding:16px 20px; }
+  header h1 { margin:0; font-size:20px; }
+  header p { margin:2px 0 0; opacity:.85; font-size:13px; }
+  main { max-width:1000px; margin:0 auto; padding:16px; }
+  fieldset.card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); margin:0 0 16px; padding:16px 18px; }
+  legend { font-weight:700; font-size:16px; padding:0 6px; }
+  /* Responsive grid: columns wrap automatically on narrow screens */
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  label, .lbl { font-size:13px; font-weight:600; }
+  .req::after { content:" *"; color:var(--err); }
+  input, select, textarea { font:inherit; padding:8px; border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--text); width:100%; min-width:0; }
+  input:focus, select:focus, button:focus-visible { outline:3px solid #9db9ff; outline-offset:1px; }
+  input[readonly] { background:#eef1f6; }
+  /* Validation styling: aria-invalid is set by JS */
+  [aria-invalid="true"] { border-color:var(--err); background:var(--err-bg); }
+  .error { color:var(--err); font-size:12px; min-height:0; }
+  .hint { font-size:12px; color:var(--muted); }
+  .sub { font-size:14px; margin:0 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .two { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
+  .checks { display:flex; flex-direction:column; gap:6px; }
+  .checks label, .inline { font-weight:400; display:flex; align-items:center; gap:8px; }
+  .checks input, .inline input { width:auto; }
+  /* Item rows are cards so they stay readable on phones */
+  .item { border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:12px; background:#fafbfd; }
+  .item-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-weight:700; }
+  .item-flags { display:flex; gap:18px; margin-top:8px; flex-wrap:wrap; }
+  .suggest { font-size:12px; color:var(--ok); }
+  button { font:inherit; cursor:pointer; border-radius:6px; padding:8px 14px; border:1px solid var(--line); background:#fff; }
+  button.primary { background:var(--brand); color:#fff; border-color:var(--brand); font-weight:700; padding:12px 28px; font-size:16px; }
+  button.primary:hover { background:var(--brand-dark); }
+  button.link { border:none; background:none; color:var(--err); padding:2px 6px; }
+  .totals { display:flex; gap:24px; flex-wrap:wrap; background:#eaf0ff; border-radius:8px; padding:10px 14px; margin-top:8px; }
+  .totals b { font-size:18px; display:block; }
+  .summary { background:var(--err-bg); border:1px solid var(--err); color:var(--err); border-radius:8px; padding:10px 14px; margin-bottom:12px; }
+  .summary ul { margin:4px 0 0 18px; padding:0; }
+  pre { background:#111827; color:#d1e7ff; padding:14px; border-radius:8px; overflow:auto; max-height:420px; font-size:12.5px; }
+  table { width:100%; border-collapse:collapse; background:#fff; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); font-size:14px; }
+  th { background:#eef1f6; }
+  .badge { background:var(--warn-bg); border:1px solid #e6c85a; padding:2px 8px; border-radius:99px; font-size:12px; font-weight:700; }
+  .best { color:var(--ok); font-weight:700; }
+  .table-wrap { overflow-x:auto; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ratewise - Standardized LTL Shipment Form</h1>
+  <p>Prototype: static page, no server. Enter the shipment once; later it will be mapped to each portal.</p>
+</header>
+
+<main>
+<!-- novalidate: we run our own validation (clearer messages) instead of the browser's popups -->
+<form id="form" novalidate>
+  <div id="errorSummary" class="summary" role="alert" tabindex="-1" hidden></div>
+
+  <!-- ===== Section A: Shipment info ===== -->
+  <fieldset class="card">
+    <legend>A. Shipment info</legend>
+    <div class="grid" style="margin-bottom:14px">
+      <div class="field">
+        <label for="shipDate" class="req">Ship date</label>
+        <input type="date" id="shipDate" name="shipDate">
+        <span class="error" id="shipDate-err"></span>
+      </div>
+    </div>
+    <div class="two">
+      <div>
+        <p class="sub">Origin</p>
+        <div class="grid">
+          <div class="field"><label for="origin-country">Country</label>
+            <select id="origin-country"><option>US</option><option>CA</option><option>MX</option></select></div>
+          <div class="field"><label for="origin-zip" class="req">ZIP</label>
+            <input id="origin-zip" inputmode="numeric" maxlength="5" autocomplete="postal-code" data-zip="origin">
+            <span class="error" id="origin-zip-err"></span></div>
+          <div class="field"><label for="origin-city">City</label><input id="origin-city"></div>
+          <div class="field"><label for="origin-state">State</label><input id="origin-state" maxlength="2"></div>
+        </div>
+      </div>
+      <div>
+        <p class="sub">Destination</p>
+        <div class="grid">
+          <div class="field"><label for="dest-country">Country</label>
+            <select id="dest-country"><option>US</option><option>CA</option><option>MX</option></select></div>
+          <div class="field"><label for="dest-zip" class="req">ZIP</label>
+            <input id="dest-zip" inputmode="numeric" maxlength="5" autocomplete="postal-code" data-zip="dest">
+            <span class="error" id="dest-zip-err"></span></div>
+          <div class="field"><label for="dest-city">City</label><input id="dest-city"></div>
+          <div class="field"><label for="dest-state">State</label><input id="dest-state" maxlength="2"></div>
+        </div>
+      </div>
+    </div>
+    <p class="hint">Try sample ZIPs: 11001, 10001, 90210, 60601, 77001, 30301, 33101, 98101 (city/state auto-fill).</p>
+  </fieldset>
+
+  <!-- ===== Section B: Items ===== -->
+  <fieldset class="card">
+    <legend>B. Items</legend>
+    <div id="items"></div>
+    <button type="button" id="addItem">+ Add item</button>
+    <div class="totals" aria-live="polite">
+      <div>Total units<b id="tot-units">0</b></div>
+      <div>Total pieces<b id="tot-pieces">0</b></div>
+      <div>Total weight<b id="tot-weight">0 lb</b></div>
+      <div>Linear feet (est.)<b id="tot-lf">0 ft</b></div>
+    </div>
+    <p class="hint">Weight is the TOTAL weight of the item row (all units). Linear feet = floor area of all units / 96 in trailer width; stackable items count half. It is only an estimate.</p>
+  </fieldset>
+
+  <!-- ===== Section C: Accessorials ===== -->
+  <fieldset class="card">
+    <legend>C. Accessorials</legend>
+    <div class="two">
+      <div>
+        <p class="sub">Pickup</p>
+        <div class="checks" id="acc-pickup"></div>
+      </div>
+      <div>
+        <p class="sub">Delivery</p>
+        <div class="checks" id="acc-delivery"></div>
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- ===== Section D: Insurance ===== -->
+  <fieldset class="card">
+    <legend>D. Insurance</legend>
+    <label class="inline"><input type="checkbox" id="insurance"> Add cargo insurance</label>
+    <div class="field" id="insValueWrap" style="max-width:240px;margin-top:10px" hidden>
+      <label for="declaredValue" class="req">Declared value (USD)</label>
+      <input id="declaredValue" type="number" min="0" step="0.01" inputmode="decimal">
+      <span class="error" id="declaredValue-err"></span>
+    </div>
+  </fieldset>
+
+  <button type="submit" class="primary">Get Rates</button>
+  <span class="hint">&nbsp;Validates only - no real request is sent.</span>
+</form>
+
+<!-- ===== JSON preview ===== -->
+<section id="jsonSection" hidden style="margin-top:24px">
+  <h2>Standardized payload (JSON preview)</h2>
+  <p class="hint">This is the single standard format. A later "mapper" step will translate it into each portal's own field names.</p>
+  <pre id="jsonOut" tabindex="0"></pre>
+</section>
+
+<!-- ===== Mock results ===== -->
+<section id="results" style="margin-top:24px">
+  <h2>Rate comparison <span class="badge">MOCK DATA</span></h2>
+  <p class="hint">Fake numbers to show the end-to-end idea. Real rates will come from the portals.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Portal</th><th>Carrier</th><th>Service</th><th>Transit</th><th>Price</th></tr></thead>
+    <tbody id="resultRows"><tr><td colspan="5" class="hint">Fill the form and click Get Rates to see a mock comparison.</td></tr></tbody>
+  </table>
+  </div>
+</section>
+</main>
+
+<script>
+/* ===== 1. Static reference data ===== */
+// Sample ZIP lookup (fake autofill). A real app would call a ZIP/geo service.
+const ZIPS = {
+  "11001":["Floral Park","NY"], "10001":["New York","NY"], "90210":["Beverly Hills","CA"],
+  "60601":["Chicago","IL"], "77001":["Houston","TX"], "30301":["Atlanta","GA"],
+  "33101":["Miami","FL"], "98101":["Seattle","WA"]
+};
+const HANDLING_UNITS = ["Pallet","Carton","Crate","Drum","Bundle","Roll","Bag","Skid"];
+const CLASSES = [50,55,60,65,70,77.5,85,92.5,100,110,125,150,175,200,250,300,400,500];
+// Standardized accessorial names: { key used in JSON : label shown to user }
+const ACC_PICKUP = {residentialPickup:"Residential Pickup", liftgatePickup:"Liftgate Pickup",
+                    limitedAccessPickup:"Limited Access Pickup", insidePickup:"Inside Pickup"};
+const ACC_DELIVERY = {residentialDelivery:"Residential Delivery", liftgateDelivery:"Liftgate Delivery",
+                      limitedAccessDelivery:"Limited Access Delivery", insideDelivery:"Inside Delivery",
+                      appointmentDelivery:"Appointment Delivery", notifyConsignee:"Notify Consignee"};
+
+/* ===== 2. Small helpers ===== */
+const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+// Density (lb per cubic foot) -> suggested NMFC freight class (simplified density table)
+function suggestClass(density) {
+  const t = [[50,50],[35,55],[30,60],[22.5,65],[15,70],[13.5,77.5],[12,85],[10.5,92.5],
+             [9,100],[8,110],[7,125],[6,150],[5,175],[4,200],[3,250],[2,300],[1,400]];
+  for (const [min, cls] of t) if (density >= min) return cls;
+  return 500;
+}
+
+/* ===== 3. Build static UI (accessorial checkboxes, ZIP autofill) ===== */
+function renderChecks(container, map) {
+  $(container).innerHTML = Object.entries(map).map(([key, label]) =>
+    `<label><input type="checkbox" name="${key}" data-acc="${key}"> ${label}</label>`).join("");
+}
+renderChecks("acc-pickup", ACC_PICKUP);
+renderChecks("acc-delivery", ACC_DELIVERY);
+
+// When a 5-digit ZIP is typed, fill city/state from the sample table
+document.querySelectorAll("[data-zip]").forEach((el) => {
+  el.addEventListener("input", () => {
+    const p = el.dataset.zip, hit = ZIPS[el.value];
+    if (hit) { $(p + "-city").value = hit[0]; $(p + "-state").value = hit[1]; }
+  });
+});
+
+$("insurance").addEventListener("change", (e) => { $("insValueWrap").hidden = !e.target.checked; });
+$("shipDate").value = new Date(Date.now() + 86400000).toISOString().slice(0, 10); // default: tomorrow
+
+/* ===== 4. Items: add / remove / live totals ===== */
+let itemSeq = 0; // unique ids so each label points to the right input
+
+function addItem() {
+  const n = ++itemSeq;
+  const div = document.createElement("div");
+  div.className = "item";
+  div.innerHTML = `
+    <div class="item-head"><span class="item-title">Item</span>
+      <button type="button" class="link" data-remove>Remove</button></div>
+    <div class="grid">
+      <div class="field"><label for="hu-${n}">Handling unit</label>
+        <select id="hu-${n}" data-f="handlingUnit">${HANDLING_UNITS.map(u => `<option>${u}</option>`).join("")}</select></div>
+      <div class="field"><label for="units-${n}" class="req">Units</label>
+        <input id="units-${n}" data-f="units" type="number" min="1" step="1" value="1"><span class="error" data-e="units"></span></div>
+      <div class="field"><label for="pcs-${n}">Pieces</label>
+        <input id="pcs-${n}" data-f="pieces" type="number" min="1" step="1" placeholder="same as units"></div>
+      <div class="field"><label for="l-${n}" class="req">Length (in)</label>
+        <input id="l-${n}" data-f="length" type="number" min="0" step="0.1"><span class="error" data-e="length"></span></div>
+      <div class="field"><label for="w-${n}" class="req">Width (in)</label>
+        <input id="w-${n}" data-f="width" type="number" min="0" step="0.1"><span class="error" data-e="width"></span></div>
+      <div class="field"><label for="h-${n}" class="req">Height (in)</label>
+        <input id="h-${n}" data-f="height" type="number" min="0" step="0.1"><span class="error" data-e="height"></span></div>
+      <div class="field"><label for="wt-${n}" class="req">Weight (lb, total)</label>
+        <input id="wt-${n}" data-f="weight" type="number" min="0" step="0.1"><span class="error" data-e="weight"></span></div>
+      <div class="field"><label for="cls-${n}" class="req">Freight class</label>
+        <select id="cls-${n}" data-f="freightClass"><option value="">Select...</option>${CLASSES.map(c => `<option>${c}</option>`).join("")}</select>
+        <span class="suggest" data-suggest></span><span class="error" data-e="freightClass"></span></div>
+      <div class="field"><label for="nmfc-${n}">NMFC #</label>
+        <input id="nmfc-${n}" data-f="nmfc" placeholder="e.g. 156600-3"></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label for="desc-${n}">Description</label>
+      <input id="desc-${n}" data-f="description" placeholder="What is being shipped?"></div>
+    <div class="item-flags">
+      <label class="inline"><input type="checkbox" data-f="stackable"> Stackable</label>
+      <label class="inline"><input type="checkbox" data-f="hazmat"> Hazmat</label>
+    </div>`;
+  $("items").appendChild(div);
+  refreshItems();
+}
+
+// Event delegation: one listener on the container handles every row, even new ones
+$("items").addEventListener("input", refreshItems);
+$("items").addEventListener("click", (e) => {
+  if (e.target.matches("[data-remove]")) {
+    if (document.querySelectorAll(".item").length > 1) { e.target.closest(".item").remove(); refreshItems(); }
+    else alert("At least one item is required.");
+  }
+});
+$("addItem").addEventListener("click", addItem);
+
+// Read one row's DOM into a plain object (the standardized item)
+function readItem(row) {
+  const g = (f) => row.querySelector(`[data-f="${f}"]`);
+  return {
+    handlingUnit: g("handlingUnit").value,
+    units: num(g("units").value),
+    pieces: num(g("pieces").value) || num(g("units").value),
+    length: num(g("length").value), width: num(g("width").value), height: num(g("height").value),
+    weight: num(g("weight").value),
+    freightClass: g("freightClass").value ? parseFloat(g("freightClass").value) : null,
+    nmfc: g("nmfc").value.trim(),
+    description: g("description").value.trim(),
+    stackable: g("stackable").checked, hazmat: g("hazmat").checked
+  };
+}
+
+// Recompute titles, class suggestions and totals after any change
+function refreshItems() {
+  let units = 0, pieces = 0, weight = 0, sqIn = 0;
+  document.querySelectorAll(".item").forEach((row, i) => {
+    row.querySelector(".item-title").textContent = "Item " + (i + 1);
+    const it = readItem(row);
+    units += it.units; pieces += it.pieces; weight += it.weight;
+    sqIn += it.length * it.width * it.units * (it.stackable ? 0.5 : 1);
+    // Density = weight / cubic feet (1 ft3 = 1728 in3); only when we have all inputs
+    const hint = row.querySelector("[data-suggest]");
+    const cuft = it.length * it.width * it.height * it.units / 1728;
+    if (cuft > 0 && it.weight > 0) {
+      const d = it.weight / cuft;
+      hint.textContent = `Density ${d.toFixed(1)} lb/ft3 - suggested class ${suggestClass(d)}`;
+    } else hint.textContent = "";
+  });
+  $("tot-units").textContent = units;
+  $("tot-pieces").textContent = pieces;
+  $("tot-weight").textContent = weight.toLocaleString() + " lb";
+  $("tot-lf").textContent = (sqIn / 96 / 12).toFixed(1) + " ft";
+}
+
+/* ===== 5. Validation: collect messages, mark fields, show summary ===== */
+function setError(input, errSpan, msg, list) {
+  if (msg) { input.setAttribute("aria-invalid", "true"); input.setAttribute("aria-describedby", errSpan.id || ""); errSpan.textContent = msg; list.push({ msg, input }); }
+  else { input.removeAttribute("aria-invalid"); errSpan.textContent = ""; }
+}
+
+function validate() {
+  const errs = [];
+  // Reusable "required and valid" check for top-level fields
+  const zipOk = (v) => /^\d{5}$/.test(v);
+  setError($("shipDate"), $("shipDate-err"), $("shipDate").value ? "" : "Ship date is required.", errs);
+  setError($("origin-zip"), $("origin-zip-err"), zipOk($("origin-zip").value) ? "" : "Origin ZIP must be 5 digits.", errs);
+  setError($("dest-zip"), $("dest-zip-err"), zipOk($("dest-zip").value) ? "" : "Destination ZIP must be 5 digits.", errs);
+
+  document.querySelectorAll(".item").forEach((row, i) => {
+    const it = readItem(row), p = `Item ${i + 1}: `;
+    const check = (field, bad, msg) => {
+      const input = row.querySelector(`[data-f="${field}"]`);
+      setError(input, row.querySelector(`[data-e="${field}"]`), bad ? p + msg : "", errs);
+      if (bad) row.querySelector(`[data-e="${field}"]`).textContent = msg; // short text next to field
+    };
+    check("units", it.units < 1, "Enter at least 1 unit.");
+    check("length", it.length <= 0, "Length must be greater than 0.");
+    check("width", it.width <= 0, "Width must be greater than 0.");
+    check("height", it.height <= 0, "Height must be greater than 0.");
+    check("weight", it.weight <= 0, "Weight must be greater than 0.");
+    check("freightClass", it.freightClass === null, "Choose a freight class.");
+  });
+
+  if ($("insurance").checked)
+    setError($("declaredValue"), $("declaredValue-err"), num($("declaredValue").value) > 0 ? "" : "Declared value must be greater than 0 when insurance is on.", errs);
+  else setError($("declaredValue"), $("declaredValue-err"), "", errs);
+  return errs;
+}
+
+/* ===== 6. Build the standardized payload (the heart of the project) ===== */
+function buildPayload() {
+  const loc = (p) => ({ country: $(p + "-country").value, zip: $(p + "-zip").value,
+                        city: $(p + "-city").value.trim(), state: $(p + "-state").value.trim().toUpperCase() });
+  const acc = {};
+  document.querySelectorAll("[data-acc]").forEach((c) => { acc[c.dataset.acc] = c.checked; });
+  const items = [...document.querySelectorAll(".item")].map(readItem);
+  return {
+    mode: "LTL",
+    shipDate: $("shipDate").value,
+    origin: loc("origin"),
+    destination: loc("dest"),
+    items,
+    totals: {
+      totalUnits: items.reduce((s, i) => s + i.units, 0),
+      totalWeightLb: items.reduce((s, i) => s + i.weight, 0),
+      linearFeetEstimate: parseFloat($("tot-lf").textContent)
+    },
+    accessorials: acc,
+    insurance: { enabled: $("insurance").checked, declaredValueUsd: $("insurance").checked ? num($("declaredValue").value) : 0 }
+  };
+}
+
+/* ===== 7. Mock results (fake prices derived from weight so they feel alive) ===== */
+function renderMock(payload) {
+  const w = payload.totals.totalWeightLb, acc = Object.values(payload.accessorials).filter(Boolean).length;
+  const base = 60 + w * 0.22 + acc * 35;
+  const rows = [
+    ["Priority1", "XPO Logistics", "Standard LTL", "3 days", base * 1.00],
+    ["ShipRite", "Estes Express", "Standard LTL", "4 days", base * 0.94],
+    ["Exfreight", "Saia", "Guaranteed", "2 days", base * 1.22],
+    ["myUnishippers", "Old Dominion", "Standard LTL", "3 days", base * 1.05]
+  ].sort((a, b) => a[4] - b[4]);
+  $("resultRows").innerHTML = rows.map((r, i) =>
+    `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td>
+     <td class="${i === 0 ? "best" : ""}">$${r[4].toFixed(2)}${i === 0 ? " (lowest)" : ""}</td></tr>`).join("");
+}
+
+/* ===== 8. Submit handler ===== */
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault(); // never leave the page
+  const errs = validate(), box = $("errorSummary");
+  if (errs.length) {
+    box.innerHTML = `<b>Please fix ${errs.length} problem(s):</b><ul>${errs.map(x => `<li>${x.msg}</li>`).join("")}</ul>`;
+    box.hidden = false; box.focus();
+    errs[0].input.scrollIntoView({ block: "center" });
+    $("jsonSection").hidden = true;
+    return;
+  }
+  box.hidden = true;
+  const payload = buildPayload();
+  $("jsonOut").textContent = JSON.stringify(payload, null, 2);
+  $("jsonSection").hidden = false;
+  renderMock(payload);
+  $("jsonSection").scrollIntoView({ behavior: "smooth" });
+});
+
+addItem(); // start with one empty item row
+</script>
+</body>
+</html>
