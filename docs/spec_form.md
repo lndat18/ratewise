@@ -1,13 +1,6 @@
-![1794910576876](image/spec_form/1794910576876.png)
+![1794925460898](image/spec_form/1794925460898.png)
 
-![1794910597841](image/spec_form/1794910597841.png)
-
-
-
-ShipmentInfo
-├── ship_date: date
-├── origin: Location
-└── destination: Location
+![1794925466731](image/spec_form/1794925466731.png)
 
 Location
 ├── country: Country (enum: US/CA/MX)
@@ -41,3 +34,9 @@ QuoteRequest        ← gom tất cả, đây là payload chuẩn
 ├── items: list[Item]
 ├── accessorials: Accessorials
 └── insurance: Insurance
+
+ShipmentInfo
+
+├── ship_date: date
+├── origin: Location
+└── destination: Location
