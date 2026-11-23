@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-## Mục tiêu dự án (falcon / ratewise)
+## Mục tiêu dự án (falcon)
 
 Agent giải quyết bài toán **book trucker** cho Baylink Logistics. Luồng chính:
 
@@ -42,7 +42,8 @@ Agent giải quyết bài toán **book trucker** cho Baylink Logistics. Luồng 
 ## Kiến trúc dự kiến
 
 ```
-src/ratewise/
+src/falcon/
+  tracking/  # (đã có) sync email IMAP -> PostgreSQL, web xem theo shipment: xem tracking/tracking_spec.md
   email/     # IMAP: tìm mail theo shipment ID, tải nội dung + file đính kèm
   extract/   # trích xuất email -> QuoteRequest (LLM + validation)
   form/      # schema chuẩn (QuoteRequest, Item, Location, Accessorials, Insurance)
@@ -76,4 +77,4 @@ Book thực hiện bằng cùng cơ chế đã đăng nhập của adapter đó.
 ## Môi trường
 
 - Python (xem `.python-version`), quản lý bằng `uv` (`pyproject.toml`, `uv.lock`).
-- Mã nguồn trong `src/ratewise/`.
+- Mã nguồn trong `src/falcon/`.
