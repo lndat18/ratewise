@@ -1,7 +1,7 @@
 """Kiểm tra kết nối IMAP.
 
-    uv run python scripts/test_imap.py            # chỉ liệt kê folder
-    uv run python scripts/test_imap.py AE-49270   # tìm thư theo shipment ID
+uv run python scripts/test_imap.py            # chỉ liệt kê folder
+uv run python scripts/test_imap.py AE-49270   # tìm thư theo shipment ID
 """
 
 import sys
