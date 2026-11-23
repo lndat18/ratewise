@@ -1,6 +1,6 @@
 # Tracking: đồng bộ email Foxmail (IMAP) vào PostgreSQL, xem theo shipment
 
-Trạng thái: Draft
+Trạng thái: Approved (2026-11-23)
 
 ## 1. Mục tiêu & phạm vi
 
