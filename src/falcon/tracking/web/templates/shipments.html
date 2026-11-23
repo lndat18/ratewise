@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Shipments{% endblock %}
+{% block content %}
+<h1>Shipments</h1>
+<form method="get" action="/">
+  <input type="search" name="q" value="{{ q }}" placeholder="Lọc theo mã, vd. AE-49270">
+  <button type="submit">Lọc</button>
+</form>
+<table>
+  <thead><tr><th>Mã</th><th>Số email</th><th>Email mới nhất</th><th>Subject mới nhất</th></tr></thead>
+  <tbody>
+  {% for s in shipments %}
+    <tr>
+      <td><a href="/shipments/{{ s.code | urlencode }}">{{ s.code }}</a></td>
+      <td>{{ s.email_count }}</td>
+      <td>{{ s.latest_sent_at.strftime("%Y-%m-%d %H:%M") if s.latest_sent_at else "—" }}</td>
+      <td>{{ s.latest_subject }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4">Không có shipment.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

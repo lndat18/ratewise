@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ shipment.code }}{% endblock %}
+{% block content %}
+<p><a href="/">&larr; Danh sách</a></p>
+<h1>{{ shipment.code }}</h1>
+<p>{{ shipment.emails | length }} email</p>
+<table>
+  <thead><tr><th>Ngày</th><th>From</th><th>To</th><th>Subject</th></tr></thead>
+  <tbody>
+  {% for e in shipment.emails %}
+    <tr>
+      <td>{{ e.sent_at.strftime("%Y-%m-%d %H:%M") if e.sent_at else "—" }}</td>
+      <td>{{ e.from_addr }}</td>
+      <td>{{ e.to_addrs | join(", ") }}</td>
+      <td>
+        <details>
+          <summary>{{ e.subject }}</summary>
+          <pre class="body">{{ e.body_text }}</pre>
+          {% if e.attachments %}
+          <ul>
+            {% for a in e.attachments %}
+            <li><a href="/attachments/{{ a.id }}">{{ a.filename or "(không tên)" }}</a>
+              ({{ a.size_bytes }} bytes)</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </details>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
