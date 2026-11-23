@@ -1,10 +1,8 @@
-# Python-generated files
+.env
+var/
+.venv/
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+*.pyc
 
-# Virtual environments
-.venv
+src/falcon/frontend_old
+src/falcon/backend_old
